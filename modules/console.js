@@ -1,4 +1,4 @@
-class myConsole {
+class GameConsole {
   static setup () {
     var console = document.createElement('div')
     console.id = 'console'
@@ -13,4 +13,4 @@ class myConsole {
   }
 }
 
-module.exports = myConsole
+module.exports = GameConsole

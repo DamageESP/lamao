@@ -2,9 +2,8 @@ const Game = require('./game.js')
 const Bullet = require('./bullet.js')
 const Player = require('./player.js')
 const Utils = require('./utils.js')
-
 const GameConsole = require('./console.js')
-//const comms = require('./comms.js')
+const UI = require('./ui.js')
 
 let bg, thisPlayer, myGame
 let socket = window.io()
@@ -20,13 +19,15 @@ window.setup = () => {
   if (!thisPlayer) {
     document.querySelector('#events').style.display = 'none'
     document.querySelector('#chat').style.display = 'none'
-    document.querySelector('#login').style.display = 'block'
+    document.querySelector('#login').style.display = 'block' 
+    document.querySelector('#username').focus()
   }
 }
 
 window.draw = () => {
   window.background(bg)
   if (thisPlayer) {
+    UI.displayKillFeed()
     GameConsole.update(`
       Player pos: x-> ${Math.floor(thisPlayer.pos.x)}, y-> ${Math.floor(thisPlayer.pos.y)}
     `)
@@ -155,12 +156,12 @@ socket.on('game update', data => {
     window.playArea = myGame.playArea
     if (myGame.lookupId(socket.id)) {
       thisPlayer = myGame.lookupId(socket.id)
-      document.querySelector('#events').style.display = 'block'
+      //document.querySelector('#events').style.display = 'block'
       document.querySelector('#chat').style.display = 'block'
       document.querySelector('#login').style.display = 'none'
     } else {
       thisPlayer = ''
-      document.querySelector('#events').style.display = 'none'
+      //document.querySelector('#events').style.display = 'none'
       document.querySelector('#chat').style.display = 'none'
       document.querySelector('#login').style.display = 'block'
       document.querySelector('#username').focus()
@@ -191,7 +192,7 @@ socket.on('status message', msg => {
   let newEl = document.createElement('li')
   newEl.style.color = 'green'
   newEl.innerHTML = msg
-  document.querySelector('#events').appendChild(newEl)
+  //document.querySelector('#events').appendChild(newEl)
   Utils.add()
 })
 
@@ -199,7 +200,7 @@ socket.on('user message', msg => {
   let newEl = document.createElement('li')
   newEl.style.color = 'green'
   newEl.innerHTML = msg
-  document.querySelector('#events').appendChild(newEl)
+  //document.querySelector('#events').appendChild(newEl)
   Utils.add()
 })
 
@@ -215,29 +216,13 @@ socket.on('say', msg => {
   }
 })
 
-socket.on('player update', player => {
-  if (myGame.lookupId(player.id)) {
-    let updateThis = myGame.lookupId(player.id)
-    updateThis.pos = player.pos
-  }
-})
-
-socket.on('bullet update', bullet => {
-  //console.log('found bullet with id '+bullet.id+' to pos x:'+bullet.pos.x+', y:'+bullet.pos.y)
-  if (myGame.lookupBullet(bullet.id)) {
-    //console.log('found bullet with id '+bullet.id)
-    let updateThis = myGame.lookupBullet(bullet.id)
-    bullet.out || bullet.strength <= 0 ? updateThis.out = true : updateThis.pos = bullet.pos
-  }
-})
-
 socket.on('add user', user => {
   console.log(myGame, user)
   let pushPlayer = new Player(user)
   myGame.players.push(pushPlayer)
   if (pushPlayer.id == socket.id) {
     thisPlayer = pushPlayer
-    document.querySelector('#events').style.display = 'block'
+    //document.querySelector('#events').style.display = 'block'
     document.querySelector('#chat').style.display = 'block'
     document.querySelector('#login').style.display = 'none'
   }
@@ -253,29 +238,19 @@ socket.on('shot', bullet => {
   }
 })
 
-socket.on('player killed', shooting => {
-  let playerHit = myGame.lookupId(shooting.hit)
-  let shooter = myGame.lookupId(shooting.shooter)
-  if (playerHit) {
-    console.log('player ' + playerHit.username + ' was killed by ' + shooter.username)
-    let i = myGame.players.indexOf(playerHit)
-    myGame.players.splice(i, 1)
-    let bullet = myGame.lookupBullet(shooting.bullet)
-    let j = myGame.bullets.indexOf(bullet)
-    myGame.bullets.splice(j, 1)
-    if (playerHit.id == socket.id) {
-      document.body.innerHTML = 'u ded'
-    }
-  } else {
-    console.log('player hit not found')
+socket.on('player kill', shooting => {
+  if (!UI.killFeed) UI.killFeed = []
+  if (UI.killFeed.length == 4) {
+    UI.killFeed.shift()
   }
+  UI.killFeed.push(shooting)
 })
 
 socket.on('disconnected', id => {
   let deleteThis = myGame.lookupId(id)
   if (thisPlayer == deleteThis) {
     thisPlayer = ''
-    document.querySelector('#events').style.display = 'none'
+    //document.querySelector('#events').style.display = 'none'
     document.querySelector('#chat').style.display = 'none'
     document.querySelector('#login').style.display = 'block'
   }

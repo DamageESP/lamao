@@ -37,7 +37,7 @@ function playGame() {
 }
 
 function movePlayers() {
-  for (var i = 0; i < myGame.players.length; i++) {
+  for (let i = myGame.players.length - 1; i >= 0; i--) {
     if (myGame.players[i].move().x >= myGame.playArea.x[0]
       && myGame.players[i].move().x <= myGame.playArea.x[1]
       && myGame.players[i].move().y >= myGame.playArea.y[0]
@@ -47,25 +47,25 @@ function movePlayers() {
 }
 
 function flyBullets() {
-  for (var i = 0; i < myGame.bullets.length; i++) {
+  for (let i = myGame.bullets.length - 1; i >= 0; i--) {
     myGame.bullets[i].fly()
     checkBulletStatus(myGame.bullets[i])
   }
 }
 
 function checkBulletStatus(bullet) {
-  for (let i = 0; i < myGame.players.length; i++) {
-    if (bullet.pos.x > myGame.playArea.x[1] || bullet.pos.x < myGame.playArea.x[0] || bullet.pos.y < myGame.playArea.y[0] || bullet.pos.y > myGame.playArea.y[1]) {
-      bullet.out = true
-    } else if (bullet.strength <= 0) bullet.out = true
-    else {
+  if (bullet.pos.x > myGame.playArea.x[1] || bullet.pos.x < myGame.playArea.x[0] || bullet.pos.y < myGame.playArea.y[0] || bullet.pos.y > myGame.playArea.y[1]) {
+    bullet.out = true
+  } else if (bullet.strength <= 0) bullet.out = true
+  else {
+    for (let i = myGame.players.length - 1; i >= 0; i--) {
       if (Math.abs(myGame.players[i].pos.x - bullet.pos.x) < 20 && Math.abs(myGame.players[i].pos.y - bullet.pos.y) < 14 && myGame.players[i].id != bullet.userID) {
         myGame.players[i].health -= bullet.strength
         if (myGame.players[i].health <= 0) {
           let killer = myGame.lookupId(bullet.userID)
           killer.kills++
           console.log('player ' + myGame.lookupId(bullet.userID).username + ' hit AND KILLED player ' + myGame.players[i].username + ' (' + myGame.lookupId(bullet.userID).kills + ' kills) !')
-          io.emit('player kill', killer.username + ' killed '+ myGame.players[i].username + '!') // announce player ded
+          io.emit('player kill', { killer: { username: killer.username, colour: killer.colour }, killed: { username: myGame.players[i].username, colour: myGame.players[i].colour } }) // send killing info
           myGame.players.splice(i, 1)
           return true
         } else {
@@ -73,10 +73,12 @@ function checkBulletStatus(bullet) {
         }
       }
     }
-    if (bullet.out) {
-      let j = myGame.bullets.indexOf(bullet)
-      myGame.bullets.splice(j, 1)
-    }
+  }
+
+  if (bullet.out) {
+    let j = myGame.bullets.indexOf(bullet)
+    //console.log('deleting bullet ' + bullet.id + ', position: x:' + bullet.pos.x + ' y: ' + bullet.pos.y)
+    myGame.bullets.splice(j, 1)
   }
 }
 
@@ -173,7 +175,7 @@ io.on('connection', client => {
         console.log(thisPlayer.username+' says: '+data)
         io.emit('say', {
           user: thisPlayer.username,
-          colour: 'rgb('+Math.floor(thisPlayer.colour.r)+', '+Math.floor(thisPlayer.colour.g)+', '+Math.floor(thisPlayer.colour.b)+')',
+          colour: thisPlayer.colour,
           data: data
         })
       } else {
